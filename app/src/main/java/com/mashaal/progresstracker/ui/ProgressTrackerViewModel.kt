@@ -1,14 +1,21 @@
 package com.mashaal.progresstracker.ui
 
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.lifecycle.ViewModel
+import com.mashaal.progresstracker.models.Status
 import com.mashaal.progresstracker.models.Task
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class ProgressTrackerViewModel(): ViewModel() {
+
+    private val _isFabVisible = MutableStateFlow(true)
+    val isFabVisible: StateFlow<Boolean> = _isFabVisible
+
+    private var previousScrollOffset = 0
+
+    private val _completedMessage = MutableStateFlow("")
+    val completedMessage: StateFlow<String> = _completedMessage
 
     private val _allTasks = MutableStateFlow<List<Task>>(emptyList())
     val allTasks: StateFlow<List<Task>> = _allTasks.asStateFlow()
@@ -54,19 +61,57 @@ class ProgressTrackerViewModel(): ViewModel() {
     private val _streakDays = MutableStateFlow(0)
     val streakDays: StateFlow<Int> = _streakDays
 
-    fun saveNewTask(task: Task){
+    private var _taskBeingEdited: Task? = null
+
+    fun updateFabVisibility(currentOffset: Int, currentIndex: Int) {
+        val isScrollingUp = currentOffset < previousScrollOffset || currentIndex == 0
+        _isFabVisible.value = isScrollingUp
+        previousScrollOffset = currentOffset
+    }
+
+    fun updateCompletedMessage(value: String) {
+        _completedMessage.value = value
+    }
+
+    fun saveNewTask(){
+        val task = Task(
+            name = textFieldTaskName.value,
+            description = textFieldTaskDescription.value,
+            initialProgress = sliderPosition.value,
+            streakDays = 0,
+            status = if(selectedOption.value == options[0]) Status.InProgress(sliderPosition.value) else Status.Completed(completedMessage.value)
+        )
         _allTasks.value = _allTasks.value + task
     }
     fun showBottomSheet() {
         _isBottomSheetVisible.value = true
     }
 
-    fun updateSelectedOption(unit: String) {
-        _selectedOption.value = unit
+    fun updateAlertSelectedOption(value: String) {
+        if (_sliderPosition.value < 100f) {
+            _alertSelectedOption.value = value
+        }
+    }
+
+
+    fun updateSelectedOption(value: String) {
+        if (_sliderPosition.value < 100f) {
+            _selectedOption.value = value
+        }
     }
 
     fun hideBottomSheet() {
         _isBottomSheetVisible.value = false
+        _textFieldTaskDescription.value = ""
+        _textFieldTaskName.value = ""
+        _completedMessage.value = ""
+        _selectedOption.value = options[0]
+        _sliderPosition.value = 0.0f
+    }
+
+    fun deleteTask(index: Int){
+        val taskToDelete = _allTasks.value[index]
+        _allTasks.value = _allTasks.value.filterNot { it == taskToDelete }
     }
 
     fun updateNameTextField(value: String){
@@ -78,6 +123,9 @@ class ProgressTrackerViewModel(): ViewModel() {
     }
 
     fun updateSliderPosition(value: Float){
+        if (value == 100f) {
+            _selectedOption.value = options[1]
+        }
         _sliderPosition.value = value
     }
 
@@ -97,9 +145,38 @@ class ProgressTrackerViewModel(): ViewModel() {
         _streakDays.value--
     }
 
-    fun showAlert() {
+    fun showAlert(task: Task) {
+        _taskBeingEdited = task
         _isAlertVisible.value = true
+        _alertTaskName.value = task.name
+        _alertTaskDescription.value = task.description
+        _alertSliderPosition.value = if (task.status is Status.InProgress) task.status.currentProgress else 0.0f
+        _streakDays.value = task.streakDays
+        _alertSelectedOption.value = if (task.status is Status.InProgress) options[0] else options[1]
     }
+
+    fun updateTask() {
+        val originalTask = _taskBeingEdited ?: return
+
+        val updatedStatus = when (_alertSelectedOption.value) {
+            options[1] -> Status.Completed(_completedMessage.value)
+            else -> Status.InProgress(_alertSliderPosition.value)
+        }
+
+        val updatedTask = originalTask.copy(
+            name = _alertTaskName.value,
+            description = _alertTaskDescription.value,
+            status = updatedStatus,
+            streakDays = _streakDays.value
+        )
+
+        _allTasks.value = _allTasks.value.map {
+            if (it == originalTask) updatedTask else it
+        }
+
+        _taskBeingEdited = null
+    }
+
 
     fun hideAlert() {
         _isAlertVisible.value = false
@@ -114,11 +191,10 @@ class ProgressTrackerViewModel(): ViewModel() {
     }
 
     fun updateAlertSlider(value: Float) {
+        if (value == 100f) {
+            _alertSelectedOption.value = options[1]
+        }
         _alertSliderPosition.value = value
-    }
-
-    fun updateAlertSelectedOption(value: String) {
-        _alertSelectedOption.value = value
     }
 
     fun showAlertDropDown() {
@@ -128,8 +204,5 @@ class ProgressTrackerViewModel(): ViewModel() {
     fun hideAlertDropDown() {
         _alertExpanded.value = false
     }
-
-
-
 
 }

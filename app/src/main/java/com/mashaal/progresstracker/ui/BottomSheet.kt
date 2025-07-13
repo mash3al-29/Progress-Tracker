@@ -1,5 +1,6 @@
 package com.mashaal.progresstracker.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,14 +24,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.mashaal.progresstracker.models.AllowedStatuses
-import com.mashaal.progresstracker.models.Task
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BottomSheet(modifier: Modifier = Modifier, currentViewModel: ProgressTrackerViewModel) {
+fun BottomSheet(currentViewModel: ProgressTrackerViewModel) {
     val isSheetVisible by currentViewModel.isBottomSheetVisible.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val nameTextField by currentViewModel.textFieldTaskName.collectAsState()
@@ -38,7 +37,8 @@ fun BottomSheet(modifier: Modifier = Modifier, currentViewModel: ProgressTracker
     val sliderPosition by currentViewModel.sliderPosition.collectAsState()
     val expanded by currentViewModel.expanded.collectAsState()
     val selectedOption by currentViewModel.selectedOption.collectAsState()
-    val tasks by currentViewModel.allTasks.collectAsState()
+    val context = LocalContext.current
+    val isDropdownEnabled = sliderPosition < 100f
     if (isSheetVisible) {
         ModalBottomSheet(
             onDismissRequest = { currentViewModel.hideBottomSheet() },
@@ -52,8 +52,8 @@ fun BottomSheet(modifier: Modifier = Modifier, currentViewModel: ProgressTracker
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Add a Task!", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+                Text("Add Task")
+                Spacer(modifier = Modifier.height(15.dp))
                 TextField(
                     value = nameTextField,
                     onValueChange = { value -> currentViewModel.updateNameTextField(value) },
@@ -83,8 +83,9 @@ fun BottomSheet(modifier: Modifier = Modifier, currentViewModel: ProgressTracker
                 Spacer(modifier = Modifier.height(15.dp))
                 Text("Choose Status", style = MaterialTheme.typography.titleMedium)
                 Column {
-                    Button(onClick = { currentViewModel.showDropDown() }) {
-                        Text(selectedOption)
+                    Button(onClick = { if (isDropdownEnabled) currentViewModel.showDropDown() },
+                        enabled = isDropdownEnabled) {
+                        Text(if (isDropdownEnabled) selectedOption else currentViewModel.options[1])
                     }
                     DropdownMenu(
                         expanded = expanded,
@@ -102,21 +103,32 @@ fun BottomSheet(modifier: Modifier = Modifier, currentViewModel: ProgressTracker
                     }
                 }
                 Spacer(modifier = Modifier.height(15.dp))
+                if (selectedOption == currentViewModel.options[1]) {
+                    Spacer(modifier = Modifier.height(15.dp))
+                    TextField(
+                        value = currentViewModel.completedMessage.collectAsState().value,
+                        onValueChange = { currentViewModel.updateCompletedMessage(it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Enter completion message") }
+                    )
+                }
+                Spacer(modifier = Modifier.height(15.dp))
                 Row {
                     Button(onClick = { currentViewModel.hideBottomSheet() }) {
                         Text("Close Sheet")
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Button(onClick = {
-                        val task = Task(
-                            name = nameTextField,
-                            description = descriptionTextField,
-                            totalProgress = sliderPosition,
-                            streakDays = 0,
-                            status = if(selectedOption == "In Progress") AllowedStatuses.In_Progress(sliderPosition.toDouble()) else AllowedStatuses.Completed("This is completed!")
-                        )
-                        currentViewModel.saveNewTask(task)
-                        println("${tasks} hallowwww")
+                        if (nameTextField.isBlank()) {
+                            Toast.makeText(context, "Task cannot have an empty name!", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (selectedOption == currentViewModel.options[1] && currentViewModel.completedMessage.value.isBlank()) {
+                            Toast.makeText(context, "Task cannot have an empty finish message!", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        currentViewModel.saveNewTask()
+                        currentViewModel.hideBottomSheet()
                     }) {
                         Text("Save Task")
                     }
