@@ -1,6 +1,7 @@
 package com.mashaal.progresstracker.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,14 +31,20 @@ import com.mashaal.progresstracker.models.Task
 
 @Composable
 fun TaskCard(modifier: Modifier = Modifier, taskData: Task, currentViewModel: ProgressTrackerViewModel, currentIndex: Int) {
+    val borderColor = when (taskData.status) {
+        is Status.Completed -> Color.Green
+        is Status.InProgress -> Color.Blue
+        is Status.Streak -> Color.Yellow
+    }
+
     return Card(
             modifier = modifier
                 .padding(bottom = 8.dp)
                 .fillMaxWidth(),
-            border = BorderStroke(1.dp, Color.White),
+            border = BorderStroke(1.dp, borderColor),
             shape = RoundedCornerShape(15),
             colors = CardDefaults.cardColors(
-                containerColor = Color.Gray,
+                containerColor = Color.Transparent
             ),
         ) {
             Column(
@@ -54,43 +62,82 @@ fun TaskCard(modifier: Modifier = Modifier, taskData: Task, currentViewModel: Pr
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Initial: ", style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "${taskData.initialProgress.toInt()}%",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    if (taskData.status is Status.InProgress) {
+                    if (taskData.status !is Status.Completed) {
                         TextButton(onClick = {
                             currentViewModel.showAlert(taskData)
                         }) {
                             Text("Edit")
                         }
+                    }else{
+                        TextButton(onClick = {
+                            currentViewModel.showAlert(taskData)
+                        }) {
+                            Text("View")
+                        }
                     }
                 }
                 Text(
                     taskData.description,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
-                Row(modifier = Modifier.padding(top = 15.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "${taskData.streakDays} days",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Green
-                    )
-                    Spacer(modifier.weight(0.7f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     when (val status = taskData.status) {
-                        is Status.Completed -> Text(
-                            "Completed -> ${status.message}",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        is Status.InProgress -> Row{
-                            Text("In Progress: ")
-                            Text("${status.currentProgress.toInt()}%", style = MaterialTheme.typography.titleMedium)
+                        is Status.Completed -> {
+                            Text(
+                                text = "Completed -> ${status.message}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.Green,
+                                softWrap = true,
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .weight(1f)
+                            )
+                        }
+                        is Status.InProgress -> {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp)
+                            ) {
+                                Row {
+                                    Text("In Progress: ")
+                                    Text(
+                                        "${status.currentProgress.toInt()}%",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.Blue
+                                    )
+                                }
+                                LinearProgressIndicator(
+                                    progress = { status.currentProgress / 100f },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp),
+                                    color = Color.Blue,
+                                    trackColor = Color(0xFFBBDEFB)
+                                )
+                            }
+                        }
+                        is Status.Streak -> {
+                            Text(
+                                text = "${status.currentStreak} days",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.Yellow,
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .weight(1f)
+                            )
                         }
                     }
+
                     IconButton(onClick = {
                         currentViewModel.deleteTask(currentIndex)
                     }) {

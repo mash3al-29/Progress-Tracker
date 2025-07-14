@@ -1,35 +1,20 @@
 package com.mashaal.progresstracker.ui
 
-import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.mashaal.progresstracker.models.Status
 
 @Composable
 fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
@@ -39,26 +24,25 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
     val sliderPosition by currentViewModel.alertSliderPosition.collectAsState()
     val expanded by currentViewModel.alertExpanded.collectAsState()
     val selectedOption by currentViewModel.alertSelectedOption.collectAsState()
+    val completedMessage by currentViewModel.completedMessage.collectAsState()
     val streakDays by currentViewModel.streakDays.collectAsState()
+    val currentState = currentViewModel.taskBeingEditedState()
     val context = LocalContext.current
+
     val isDropdownEnabled = sliderPosition < 100f
+
     if (isSheetVisible) {
         AlertDialog(
             onDismissRequest = { currentViewModel.hideAlert() },
-            confirmButton = {
-                Button(onClick = {
-                    if (nameTextField.isBlank()) {
-                        Toast.makeText(context, "Task cannot have an empty name!", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    if (selectedOption == currentViewModel.options[1] && currentViewModel.completedMessage.value.isBlank()) {
-                        Toast.makeText(context, "Task cannot have an empty finish message!", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    currentViewModel.hideAlert()
-                    currentViewModel.updateTask()
-                }) {
-                    Text("Save")
+            confirmButton = if (currentState is Status.Completed) {
+                {}
+            } else {
+                {
+                    EditButton(
+                        currentViewModel,
+                        context,
+                        "Save"
+                    )
                 }
             },
             dismissButton = {
@@ -67,7 +51,12 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                 }
             },
             title = {
-                Text("Edit Task")
+                Text(when(currentState){
+                    is Status.Completed -> "View Task"
+                    is Status.InProgress -> "Edit Task"
+                    is Status.Streak -> "Edit Task"
+                    null -> "Edit Task"
+                })
             },
             text = {
                 Column(
@@ -83,7 +72,6 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                         placeholder = { Text("Enter task name") },
                         singleLine = true
                     )
-
                     TextField(
                         value = descriptionTextField,
                         onValueChange = { currentViewModel.updateAlertDescription(it) },
@@ -92,73 +80,93 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                         singleLine = true
                     )
 
-                    Text("Progress: ${sliderPosition.toInt()}%")
-                    Slider(
-                        value = sliderPosition,
-                        onValueChange = { currentViewModel.updateAlertSlider(it) },
-                        valueRange = 0f..100f
-                    )
-                    Text("Choose Status")
-                    Column {
-                        Button(onClick = { if (isDropdownEnabled) currentViewModel.showAlertDropDown() },
-                            enabled = isDropdownEnabled) {
-                            Text(if (isDropdownEnabled) selectedOption else currentViewModel.options[1])
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { currentViewModel.hideAlertDropDown() }
-                        ) {
-                            currentViewModel.options.forEach { option ->
+                    if (selectedOption == currentViewModel.taskStatusOptions[0]) {
+                        Text("Progress: ${sliderPosition.toInt()}%")
+                        Slider(
+                            value = sliderPosition,
+                            onValueChange = { currentViewModel.updateAlertSlider(it) },
+                            valueRange = 0f..100f
+                        )
+                    }
+                    if (selectedOption == currentViewModel.taskStatusOptions[0]) {
+                        Text("Choose Status")
+                        Column {
+                            Button(
+                                onClick = { currentViewModel.showAlertDropDown() },
+                                enabled = isDropdownEnabled
+                            ) {
+                                Text(selectedOption)
+                            }
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { currentViewModel.hideAlertDropDown() }
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text(option) },
+                                    text = { Text(currentViewModel.taskStatusOptions[0]) },
                                     onClick = {
-                                        currentViewModel.updateAlertSelectedOption(option)
+                                        currentViewModel.updateAlertSelectedOption(currentViewModel.taskStatusOptions[0])
+                                        currentViewModel.hideAlertDropDown()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(currentViewModel.taskStatusOptions[1]) },
+                                    onClick = {
+                                        currentViewModel.updateAlertSelectedOption(currentViewModel.taskStatusOptions[1])
                                         currentViewModel.hideAlertDropDown()
                                     }
                                 )
                             }
                         }
+                    } else {
+                        Text("Status: $selectedOption", style = MaterialTheme.typography.titleMedium)
                     }
-                    if (selectedOption == currentViewModel.options[1]) {
-                        Spacer(modifier = Modifier.height(15.dp))
-                        TextField(
-                            value = currentViewModel.completedMessage.collectAsState().value,
-                            onValueChange = { currentViewModel.updateCompletedMessage(it) },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Enter completion message") }
-                        )
-                    }
-                    Text("Streak Days")
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        IconButton(
-                            onClick = { if (streakDays > 0) currentViewModel.decrementStreak() },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                        ) {
-                            Icon(Icons.Default.Remove, contentDescription = "Decrease")
+
+                    when (selectedOption) {
+                        currentViewModel.taskStatusOptions[1] -> {
+                            Spacer(modifier = Modifier.height(15.dp))
+                            TextField(
+                                value = completedMessage,
+                                onValueChange = { currentViewModel.updateCompletedMessage(it) },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("Enter completion message") }
+                            )
                         }
 
-                        Spacer(modifier = Modifier.width(20.dp))
+                        currentViewModel.taskStatusOptions[2] -> {
+                            Spacer(modifier = Modifier.height(15.dp))
+                            Text("Streak Days", style = MaterialTheme.typography.titleMedium)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        if (streakDays > 0) currentViewModel.decrementStreak()
+                                    },
+                                    modifier = Modifier.size(40.dp).clip(CircleShape)
+                                ) {
+                                    Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                                }
 
-                        Text(
-                            text = streakDays.toString(),
-                            style = MaterialTheme.typography.headlineSmall
-                        )
+                                Spacer(modifier = Modifier.width(20.dp))
 
-                        Spacer(modifier = Modifier.width(20.dp))
+                                Text(
+                                    text = streakDays.toString(),
+                                    style = MaterialTheme.typography.headlineSmall
+                                )
 
-                        IconButton(
-                            onClick = { currentViewModel.incrementStreak() },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Increase")
+                                Spacer(modifier = Modifier.width(20.dp))
+
+                                IconButton(
+                                    onClick = { currentViewModel.incrementStreak() },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Increase")
+                                }
+                            }
                         }
                     }
                 }
