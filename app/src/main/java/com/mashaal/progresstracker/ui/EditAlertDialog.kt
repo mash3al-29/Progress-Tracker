@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.mashaal.progresstracker.models.Status
+import com.mashaal.progresstracker.models.TaskStatus
 
 @Composable
 fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
@@ -80,7 +81,7 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                         singleLine = true
                     )
 
-                    if (selectedOption == currentViewModel.taskStatusOptions[0]) {
+                    if (selectedOption == TaskStatus.InProgress) {
                         Text("Progress: ${sliderPosition.toInt()}%")
                         Slider(
                             value = sliderPosition,
@@ -88,32 +89,32 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                             valueRange = 0f..100f
                         )
                     }
-                    if (selectedOption == currentViewModel.taskStatusOptions[0]) {
+                    if (selectedOption == TaskStatus.InProgress) {
                         Text("Choose Status")
                         Column {
                             Button(
                                 onClick = { currentViewModel.showAlertDropDown() },
                                 enabled = isDropdownEnabled
                             ) {
-                                Text(selectedOption)
+                                Text(selectedOption.displayText)
                             }
                             DropdownMenu(
                                 expanded = expanded,
                                 onDismissRequest = { currentViewModel.hideAlertDropDown() }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text(currentViewModel.taskStatusOptions[0]) },
-                                    onClick = {
-                                        currentViewModel.updateAlertSelectedOption(currentViewModel.taskStatusOptions[0])
-                                        currentViewModel.hideAlertDropDown()
-                                    }
+                                    text = { Text(TaskStatus.InProgress.displayText) },
+                                onClick = {
+                                    currentViewModel.updateAlertSelectedOption(TaskStatus.InProgress)
+                                    currentViewModel.hideAlertDropDown()
+                                }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text(currentViewModel.taskStatusOptions[1]) },
-                                    onClick = {
-                                        currentViewModel.updateAlertSelectedOption(currentViewModel.taskStatusOptions[1])
-                                        currentViewModel.hideAlertDropDown()
-                                    }
+                                    text = { Text(TaskStatus.Completed.displayText) },
+                                onClick = {
+                                    currentViewModel.updateAlertSelectedOption(TaskStatus.Completed)
+                                    currentViewModel.hideAlertDropDown()
+                                }
                                 )
                             }
                         }
@@ -122,7 +123,7 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                     }
 
                     when (selectedOption) {
-                        currentViewModel.taskStatusOptions[1] -> {
+                        TaskStatus.Completed -> {
                             Spacer(modifier = Modifier.height(15.dp))
                             TextField(
                                 value = completedMessage,
@@ -132,7 +133,7 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                             )
                         }
 
-                        currentViewModel.taskStatusOptions[2] -> {
+                        TaskStatus.Streak -> {
                             Spacer(modifier = Modifier.height(15.dp))
                             Text("Streak Days", style = MaterialTheme.typography.titleMedium)
                             Row(
@@ -168,6 +169,8 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                                 }
                             }
                         }
+
+                        TaskStatus.InProgress -> null
                     }
                 }
             }

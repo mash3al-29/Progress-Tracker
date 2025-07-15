@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.mashaal.progresstracker.models.ValidationResult
+import com.mashaal.progresstracker.models.TaskStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +77,7 @@ fun BottomSheet(currentViewModel: ProgressTrackerViewModel) {
                 Text("Choose Status", style = MaterialTheme.typography.titleMedium)
                 Column{
                     Button(onClick = { currentViewModel.showDropDown() }) {
-                        Text(selectedOption)
+                        Text(selectedOption.displayText)
                     }
                     DropdownMenu(
                         expanded = expanded,
@@ -84,7 +85,7 @@ fun BottomSheet(currentViewModel: ProgressTrackerViewModel) {
                     ) {
                         currentViewModel.taskStatusOptions.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option) },
+                                text = { Text(option.displayText) },
                                 onClick = {
                                     currentViewModel.updateSelectedOption(option)
                                     currentViewModel.hideDropDown()
@@ -96,7 +97,7 @@ fun BottomSheet(currentViewModel: ProgressTrackerViewModel) {
                 Spacer(modifier = Modifier.height(15.dp))
 
                 when (selectedOption){
-                    currentViewModel.taskStatusOptions[0] -> {
+                    TaskStatus.InProgress -> {
                         Text("Choose Initial Progress", style = MaterialTheme.typography.titleMedium)
                         Text(
                             text = "Progress: ${sliderPosition.toInt()}%",
@@ -110,7 +111,7 @@ fun BottomSheet(currentViewModel: ProgressTrackerViewModel) {
                             valueRange = 0f..100f,
                         )
                     }
-                    currentViewModel.taskStatusOptions[1] ->{
+                    TaskStatus.Completed ->{
                         TextField(
                             value = currentViewModel.completedMessage.collectAsState().value,
                             onValueChange = { currentViewModel.updateCompletedMessage(it) },
@@ -118,7 +119,7 @@ fun BottomSheet(currentViewModel: ProgressTrackerViewModel) {
                             placeholder = { Text("Enter completion message") }
                         )
                     }
-                    currentViewModel.taskStatusOptions[2] ->{
+                    TaskStatus.Streak ->{
                         val streakDays by currentViewModel.streakDays.collectAsState()
                         Text("Set Initial Streak Days", style = MaterialTheme.typography.titleMedium)
                         Row(
