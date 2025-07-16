@@ -9,6 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,7 +26,7 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
     val nameTextField by currentViewModel.alertTaskName.collectAsState()
     val descriptionTextField by currentViewModel.alertTaskDescription.collectAsState()
     val sliderPosition by currentViewModel.alertSliderPosition.collectAsState()
-    val expanded by currentViewModel.alertExpanded.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
     val selectedOption by currentViewModel.alertSelectedOption.collectAsState()
     val completedMessage by currentViewModel.completedMessage.collectAsState()
     val streakDays by currentViewModel.streakDays.collectAsState()
@@ -93,27 +96,27 @@ fun TaskEditAlert(currentViewModel: ProgressTrackerViewModel) {
                         Text("Choose Status")
                         Column {
                             Button(
-                                onClick = { currentViewModel.showAlertDropDown() },
+                                onClick = { expanded = true },
                                 enabled = isDropdownEnabled
                             ) {
                                 Text(selectedOption.displayText)
                             }
                             DropdownMenu(
                                 expanded = expanded,
-                                onDismissRequest = { currentViewModel.hideAlertDropDown() }
+                                onDismissRequest = { expanded = false }
                             ) {
                                 DropdownMenuItem(
                                     text = { Text(TaskStatus.InProgress.displayText) },
                                 onClick = {
                                     currentViewModel.updateAlertSelectedOption(TaskStatus.InProgress)
-                                    currentViewModel.hideAlertDropDown()
+                                    expanded = false
                                 }
                                 )
                                 DropdownMenuItem(
                                     text = { Text(TaskStatus.Completed.displayText) },
                                 onClick = {
                                     currentViewModel.updateAlertSelectedOption(TaskStatus.Completed)
-                                    currentViewModel.hideAlertDropDown()
+                                    expanded = false
                                 }
                                 )
                             }

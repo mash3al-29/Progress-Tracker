@@ -27,6 +27,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,7 +45,7 @@ fun BottomSheet(currentViewModel: ProgressTrackerViewModel) {
     val nameTextField by currentViewModel.taskName.collectAsState()
     val descriptionTextField by currentViewModel.taskDescription.collectAsState()
     val sliderPosition by currentViewModel.sliderPosition.collectAsState()
-    val expanded by currentViewModel.expanded.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
     val selectedOption by currentViewModel.selectedOption.collectAsState()
     val context = LocalContext.current
     if (isSheetVisible) {
@@ -76,19 +79,19 @@ fun BottomSheet(currentViewModel: ProgressTrackerViewModel) {
                 Spacer(modifier = Modifier.height(15.dp))
                 Text("Choose Status", style = MaterialTheme.typography.titleMedium)
                 Column{
-                    Button(onClick = { currentViewModel.showDropDown() }) {
+                    Button(onClick = { expanded = true }) {
                         Text(selectedOption.displayText)
                     }
                     DropdownMenu(
                         expanded = expanded,
-                        onDismissRequest = { currentViewModel.hideDropDown() }
+                        onDismissRequest = { expanded = false }
                     ) {
                         currentViewModel.taskStatusOptions.forEach { option ->
                             DropdownMenuItem(
                                 text = { Text(option.displayText) },
                                 onClick = {
                                     currentViewModel.updateSelectedOption(option)
-                                    currentViewModel.hideDropDown()
+                                    expanded = false
                                 }
                             )
                         }

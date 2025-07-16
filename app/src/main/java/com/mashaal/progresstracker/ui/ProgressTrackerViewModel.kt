@@ -10,8 +10,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 
-
-
 class ProgressTrackerViewModel(): ViewModel() {
     companion object {
         const val PROGRESS_MAX_VALUE = 100f
@@ -35,8 +33,6 @@ class ProgressTrackerViewModel(): ViewModel() {
     private val _isBottomSheetVisible = MutableStateFlow(false)
     val isBottomSheetVisible = _isBottomSheetVisible.asStateFlow()
 
-    private val _expanded = MutableStateFlow(false)
-    val expanded = _expanded.asStateFlow()
 
     private val _taskName = MutableStateFlow("")
     val taskName = _taskName.asStateFlow()
@@ -53,9 +49,6 @@ class ProgressTrackerViewModel(): ViewModel() {
 
     private val _isAlertVisible = MutableStateFlow(false)
     val isAlertVisible = _isAlertVisible.asStateFlow()
-
-    private val _alertExpanded = MutableStateFlow(false)
-    val alertExpanded = _alertExpanded.asStateFlow()
 
     private val _expandedForFab = MutableStateFlow(false)
 
@@ -176,16 +169,6 @@ class ProgressTrackerViewModel(): ViewModel() {
     }
 
 
-    fun showDropDown() {
-        _expanded.value = true
-    }
-
-
-    fun hideDropDown() {
-        _expanded.value = false
-    }
-
-
     fun incrementStreak(){
         _streakDays.value++
     }
@@ -290,16 +273,6 @@ class ProgressTrackerViewModel(): ViewModel() {
             _alertSelectedOption.value = TaskStatus.Completed
         }
         _alertSliderPosition.value = value
-    }
-
-    fun showAlertDropDown() {
-        if (alertSelectedOption.value == TaskStatus.InProgress) {
-            _alertExpanded.value = true
-        }
-    }
-
-    fun hideAlertDropDown() {
-        _alertExpanded.value = false
     }
 
 }
